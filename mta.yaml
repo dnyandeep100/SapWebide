@@ -1,0 +1,94 @@
+_schema-version: "3.2"
+ID: demo-demoapp
+description: A Fiori application.
+version: 0.0.1
+modules:
+- name: demo-demoapp-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: demo-demoapp-destination-service
+    parameters:
+      content-target: true
+  - name: demo-demoapp-repo-host
+    parameters:
+      service-key:
+        name: demo-demoapp-repo-host-key
+  - name: demo-demoapp-uaa
+    parameters:
+      service-key:
+        name: demo-demoapp-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: demo-demoapp_html_repo_host
+          ServiceInstanceName: demo-demoapp-html5-srv
+          ServiceKeyName: demo-demoapp-repo-host-key
+          sap.cloud.service: demo-demoapp
+        - Authentication: OAuth2UserTokenExchange
+          Name: demo-demoapp_uaa
+          ServiceInstanceName: demo-demoapp-xsuaa-srv
+          ServiceKeyName: demo-demoapp-uaa-key
+          sap.cloud.service: demo-demoapp
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: demo-demoapp-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: demo-demoapp-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - demodemoapp.zip
+      name: demodemoapp
+      target-path: resources/
+- name: demodemoapp
+  type: html5
+  path: .
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: demo-demoapp-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: demo-demoapp-destination-service
+    service-plan: lite
+- name: demo-demoapp-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: demo-demoapp-xsuaa-srv
+    service-plan: application
+- name: demo-demoapp-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: demo-demoapp-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
